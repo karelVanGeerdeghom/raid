@@ -716,6 +716,8 @@
                 }
 
                 for (let i = 1; i < 6; i++) {
+                    $('#boost_' + i + ' .efficiency').text(new Intl.NumberFormat('nl-BE').format(0));
+
                     let rankPoints = parseInt($('#rank_' + i + ' .points').text());
                     let levelPoints = parseInt($('#level_' + i + ' .points').text());
                     let boostPoints = parseInt($('#boost_' + i + ' .points').text());

@@ -4,10 +4,15 @@
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous"></script>
 
     <style>
+    	table {
+    		float: left;
+    	}
+
         table, tr, th, td {
             font-size: 24px;
             border: 1px black solid;
             border-collapse: collapse;
+            margin: 10px;
         }
 
         th, td {
@@ -36,7 +41,7 @@
     </style>
 </head>
 <body>
-    <table>
+    <table id="points">
         <thead>
             <tr>
                 <th><input type="checkbox" id="chain" /></th>
@@ -235,7 +240,41 @@
                 <td id="total-efficiency">0</td>
             </tr>
             <tr>
-                <td colspan="9"><button id="reset">Reset</button></td>
+                <td colspan="9"><button id="reset-points">Reset</button></td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <table>
+        <thead>
+            <tr>
+            	<th>Stat</th>
+            	<th>CC</th>
+            	<th>CD</th>
+            	<th>Damage</th>
+            </tr>
+        </thead>
+        <tbody>
+        	<tr>
+        		<td><input class="stat-from" type="number" min="0" value="0" /></td>
+        		<td><input class="cc-from" type="number" min="15" value="15" /></td>
+        		<td><input class="cd-from" type="number" min="50" value="50" /></td>
+        		<td><input class="damage-from" type="number" value="0" /></td>
+        	</tr>
+        	<tr>
+        		<td><input class="stat-to" type="number" min="0" value="0" /></td>
+        		<td><input class="cc-to" type="number" min="15" value="15" /></td>
+        		<td><input class="cd-to" type="number" min="50" value="50" /></td>
+        		<td><input class="damage-to" type="number" value="0" /></td>
+        	</tr>
+        </tbody>
+        <tfoot>
+        	<tr>
+                <td colspan="3"><button id="calculate-damage">Calculate</button></td>
+                <td><input class="percentage" value="0%" /></td>
+            </tr>
+        	<tr>
+                <td colspan="4"><button id="reset-damage">Reset</button></td>
             </tr>
         </tfoot>
     </table>
@@ -503,14 +542,14 @@
             };
 
             Raid.setupUI = function() {
-                $('input[type="number"]').on('change', function() {
+                $('#points input[type="number"]').on('change', function() {
                     if ($('input[type="checkbox"]').is(':checked')) {
                         let id = $(this).parents('tr').attr('id');
 
                         Raid.chain(id);
                     }
 
-                    Raid.calculate();
+                    Raid.calculatePoints();
                     Raid.calculateEfficiency();
                 });
 
@@ -524,12 +563,47 @@
                     $('#boost_' + rank + ' input.from').val(0);
                     $('#boost_' + rank + ' input.to').val(Raid.boostLevels[rank - 1]);
 
-                    Raid.calculate();
+                    Raid.calculatePoints();
                     Raid.calculateEfficiency();
                 });
 
-                $('button#reset').on('click', function () {
-                    Raid.reset();
+                $('button#reset-points').on('click', function () {
+                    Raid.resetPoints();
+                });
+
+                $('button#calculate-damage').on('click', function () {
+                	let statFrom = parseInt($('input.stat-from').val());
+                	let ccFrom = parseInt($('input.cc-from').val());
+                	let cdFrom = parseInt($('input.cd-from').val());
+                    let damageFrom = Raid.calculateDamage(statFrom, ccFrom, cdFrom);
+
+					let statTo = parseInt($('input.stat-to').val());
+                	let ccTo = parseInt($('input.cc-to').val());
+                	let cdTo = parseInt($('input.cd-to').val());
+                    let damageTo = Raid.calculateDamage(statTo, ccTo, cdTo);                
+
+                    $('input.damage-from').val(damageFrom);
+                    $('input.damage-to').val(damageTo);
+
+                    if (damageFrom > 0 && damageTo > 0) {
+                    	let percentage = Math.round(((damageTo / damageFrom) - 1) * 10000) / 100;
+
+                    	$('input.percentage').val(percentage + '%');
+                    }
+                });
+
+                $('button#reset-damage').on('click', function() {
+					$('input.stat-from').val(0);
+					$('input.cc-from').val(15);
+					$('input.cd-from').val(50);
+					$('input.damage-from').val(0);
+
+					$('input.stat-to').val(0);
+					$('input.cc-to').val(15);
+					$('input.cd-to').val(50);
+					$('input.damage-to').val(0);
+
+					$('input.percentage').val('0%');
                 });
             };
 
@@ -556,22 +630,22 @@
 						$('#boost_' + i + ' input.to').val(this.boostLevels[i - 1]);
                     }
                 }
-            }
+            };
 
-            Raid.reset = function() {
-                $('tbody input').val(0);
-                $('tbody .experience').text(0);
-                $('tbody .battles').text('00#00#00');
-                $('tbody .energy').text(0);
-                $('tbody .points').text(0);
-                $('tbody .efficiency').text(0);
+            Raid.resetPoints = function() {
+                $('#points tbody input').val(0);
+                $('#points tbody .experience').text(0);
+                $('#points tbody .battles').text('00#00#00');
+                $('#points tbody .energy').text(0);
+                $('#points tbody .points').text(0);
+                $('#points tbody .efficiency').text(0);
 
-                $('tfoot #total-energy').text(0);
-                $('tfoot #total-points').text(0);
-                $('tfoot #total-efficiency').text(0);
-            }
+                $('#points tfoot #total-energy').text(0);
+                $('#points tfoot #total-points').text(0);
+                $('#points tfoot #total-efficiency').text(0);
+            };
 
-            Raid.calculate = function() {
+            Raid.calculatePoints = function() {
                 $('tbody tr').each(function() {
                     let id = $(this).attr('id');
                     if (id) {
@@ -643,7 +717,7 @@
                     totalEfficiency = totalPoints / totalEnergy;
                 }
                 $('#total-efficiency').text(new Intl.NumberFormat('nl-BE').format(totalEfficiency));
-            }
+            };
 
             Raid.calculateExperience = function(rank, level) {
                 let experience = 0;
@@ -675,7 +749,7 @@
                 }
 
                 return battles;
-            }
+            };
 
             Raid.calculateEnergy = function(experience) {
                 let energy = 0;
@@ -730,8 +804,19 @@
                 }
             };
 
+            Raid.calculateDamage = function(stat, cc, cd) {
+            	if (cc > 100) {
+            		cc = 100;
+            	}
+
+            	let damage = (stat * ((100 - cc) / 100)) +  (stat * (cc / 100) * ((100 + cd) / 100));
+
+            	return damage;
+            };
+
             $(document).ready(function() {
                 Raid.setupUI();
+
             });
         })(jQuery);
     </script>
